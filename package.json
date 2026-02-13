@@ -1,0 +1,13 @@
+{
+  "name": "product-catalog-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend-only UI for a Product Catalog Management API with filtering, sorting, and CRUD operations.",
+  "scripts": {
+    "dev": "npx serve . -l 5173"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}
+
