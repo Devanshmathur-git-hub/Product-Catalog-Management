@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/products'; // or your real endpoint
+const API_BASE_URL = 'http://localhost:3001/api/products';
 // Utility to build query string with optional params
 function buildQuery(params) {
   const searchParams = new URLSearchParams();
@@ -20,6 +20,10 @@ const listError = document.getElementById('listError');
 const filtersForm = document.getElementById('filters-form');
 const resetFiltersButton = document.getElementById('resetFilters');
 
+const prevPageButton = document.getElementById('prevPage');
+const nextPageButton = document.getElementById('nextPage');
+const pageInfo = document.getElementById('pageInfo');
+
 const productForm = document.getElementById('productForm');
 const formTitle = document.getElementById('formTitle');
 const saveButton = document.getElementById('saveButton');
@@ -27,10 +31,15 @@ const cancelEditButton = document.getElementById('cancelEditButton');
 const formStatus = document.getElementById('formStatus');
 
 let isEditing = false;
+let currentPage = 1;
+let totalPages = 1;
+const PAGE_SIZE = 10;
 
 async function fetchProducts() {
   listError.classList.add('hidden');
   listLoading.classList.remove('hidden');
+
+  //searching
 
   const formData = new FormData(filtersForm);
   const query = buildQuery({
@@ -39,6 +48,8 @@ async function fetchProducts() {
     minPrice: formData.get('minPrice') || undefined,
     maxPrice: formData.get('maxPrice') || undefined,
     sort: formData.get('sort') || undefined,
+    page: currentPage,
+    limit: PAGE_SIZE,
   });
 
   try {
@@ -47,15 +58,38 @@ async function fetchProducts() {
       throw new Error(`Failed to fetch products. Status ${res.status}`);
     }
     const data = await res.json();
-    renderProducts(Array.isArray(data) ? data : data.items || []);
+    const items = Array.isArray(data) ? data : data.items || [];
+
+    if (!Array.isArray(data)) {
+      currentPage = data.page || 1;
+      totalPages = data.totalPages || 1;
+      updatePaginationControls(data.totalItems);
+    } else {
+      currentPage = 1;
+      totalPages = 1;
+      updatePaginationControls(items.length);
+    }
+
+    renderProducts(items);
   } catch (err) {
     console.error(err);
     listError.textContent =
-      'Unable to load products. Check that your API is running and API_BASE_URL is correct.';
+      `Cannot reach the backend. Is it running? Open ${API_BASE_URL.replace(/\/api\/products.*$/, '')} in a new tab to check.`;
     listError.classList.remove('hidden');
     renderProducts([]);
   } finally {
     listLoading.classList.add('hidden');
+  }
+}
+
+function updatePaginationControls(totalItems = 0) {
+  pageInfo.textContent = `Page ${currentPage} of ${Math.max(totalPages, 1)}`;
+  prevPageButton.disabled = currentPage <= 1;
+  nextPageButton.disabled = currentPage >= totalPages;
+
+  if (typeof totalItems === 'number' && totalItems >= 0) {
+    productsCount.textContent =
+      totalItems === 1 ? '1 item' : `${totalItems} items`;
   }
 }
 
@@ -73,9 +107,6 @@ function renderProducts(products) {
     productsCount.textContent = '0 items';
     return;
   }
-
-  productsCount.textContent =
-    products.length === 1 ? '1 item' : `${products.length} items`;
 
   for (const product of products) {
     const tr = document.createElement('tr');
@@ -260,12 +291,28 @@ async function viewProduct(id) {
 // Event listeners
 filtersForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  currentPage = 1;
   fetchProducts();
 });
 
 resetFiltersButton.addEventListener('click', () => {
   filtersForm.reset();
+  currentPage = 1;
   fetchProducts();
+});
+
+prevPageButton.addEventListener('click', () => {
+  if (currentPage > 1) {
+    currentPage -= 1;
+    fetchProducts();
+  }
+});
+
+nextPageButton.addEventListener('click', () => {
+  if (currentPage < totalPages) {
+    currentPage += 1;
+    fetchProducts();
+  }
 });
 
 productForm.addEventListener('submit', handleSaveProduct);
