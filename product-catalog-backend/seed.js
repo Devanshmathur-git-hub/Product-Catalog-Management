@@ -36,3 +36,6 @@ const runSeeder = async () => {
 
 
 runSeeder();
+
+
+

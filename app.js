@@ -338,3 +338,9 @@ productsBody.addEventListener('click', (event) => {
 // Initial load
 fetchProducts();
 
+
+
+
+
+
+
